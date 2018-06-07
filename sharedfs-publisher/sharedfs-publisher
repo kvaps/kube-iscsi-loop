@@ -1,0 +1,79 @@
+#!/bin/sh
+
+LUN="${LUN-1}"
+TIMEOUT="${TIMEOUT:-10}"
+
+warn () {
+  echo "$0: $@" >&2
+}
+
+die () {
+  status="$1"
+  shift
+  warn "$@"
+  exit "$status"
+}
+
+add_targets() {
+  TARGET=$(tgtadm --lld iscsi --mode target --op show | \
+    awk -F':? ' '$1 == "Target" {print $2}' | sort | tail -n1)
+  
+  find "${DIRECTORY}" \
+    -maxdepth 1 \
+    -type f \
+    -name '*.img' \
+    -exec readlink -f "{}" \; |
+  while read DISK; do
+    DISK_NAME=$(basename $DISK)
+    tgtadm --lld iscsi --mode target --op show | grep -q " ${IQN}:${DISK_NAME}$"
+    if [ $? != 0 ]; then
+      TARGET=$((TARGET+1))
+      (
+        set -x
+        tgtadm --lld iscsi --op new --mode target --tid "${TARGET}" --targetname "${IQN}:${DISK_NAME}"
+        tgtadm --lld iscsi --op new --mode lu --tid "${TARGET}" --lun "${LUN}" -b "${DISK}"
+        tgtadm --lld iscsi --op bind --mode target --tid "${TARGET}" --initiator-address "127.0.0.1"
+      )
+    fi
+  done
+}
+
+del_targets() {
+  tgtadm --lld iscsi --mode target --op show |
+    awk -F':? ' '$1 == "Target" {print $2 " " $3}' |
+    sed -n "s/ ${IQN}:/ ${DIRECTORY}\//p" |
+  while read DISK; do
+    TARGET="${DISK%% *}"
+    DISK="$(readlink -f ${DISK#* })"
+    if [ ! -f "${DISK}" ]; then
+      (
+        set -x
+        tgtadm --lld iscsi --op delete --mode target --tid "${TARGET}"
+      )
+    fi
+  done
+}
+
+case "" in
+  "${DIRECTORY}" ) die 1 "Variable DIRECTORY should be set" ;;
+  "${IQN}" ) die 1 "Variable IQN should be set" ;;
+esac
+
+if [ ! -d "${DIRECTORY}" ]; then
+  die 1 "Directory '${DIRECTORY}' is not exist"
+fi
+
+if ! command -v tgtadm >/dev/null; then
+  die 1 "Command 'tgtadm' not found"
+fi
+
+while true; do
+  tgtadm --lld iscsi --mode target --op show 1>/dev/null 2>/dev/null
+  if [ $? != 0 ]; then
+    die 1 "Can not connect to tgtd daemon"
+  fi
+
+  add_targets
+  del_targets
+  sleep "${TIMEOUT}"
+done
