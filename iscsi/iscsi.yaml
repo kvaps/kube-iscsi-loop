@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: iscsi
+spec:
+  updateStrategy:
+    type: OnDelete
+  selector:
+    matchLabels:
+      app: iscsi
+  template:
+    metadata:
+      labels:
+        app: iscsi
+    spec:
+      hostNetwork: true
+
+      initContainers:
+      - name: install
+        image: "kvaps/iscsi"
+        command:
+        - cp
+        args:
+        - -f
+        - /usr/bin/iscsiadm
+        - /usr/sbin/tgtadm
+        - /host-bin
+        volumeMounts:
+        - name: bin
+          mountPath: /host-bin
+
+      containers:
+      - name: tgtd
+        imagePullPolicy: Always
+        image: "kvaps/iscsi"
+        command: [ "tgtd", "-f" ]
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: run
+          mountPath: "/run"
+      - name: iscsid
+        imagePullPolicy: Always
+        image: "kvaps/iscsi"
+        command: [ "iscsid", "-f" ]
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: modules
+          mountPath: "/lib/modules"
+        - name: dev
+          mountPath: "/dev"
+        - name: run
+          mountPath: "/run"
+
+      volumes:
+      - name: modules
+        hostPath:
+          path: "/lib/modules"
+      - name: run
+        hostPath:
+          path: "/run"
+      - name: dev
+        hostPath:
+          path: "/dev"
+      - name: bin
+        hostPath:
+          path: "/usr/local/bin"
