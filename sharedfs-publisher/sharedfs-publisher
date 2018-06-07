@@ -41,7 +41,7 @@ add_targets() {
 del_targets() {
   tgtadm --lld iscsi --mode target --op show |
     awk -F':? ' '$1 == "Target" {print $2 " " $3}' |
-    sed -n "s| ${IQN}:\(.*\)| ${DIRECTORY}\1.img|p"
+    sed -n "s| ${IQN}:\(.*\)| ${DIRECTORY}\1.img|p" |
   while read DISK; do
     TARGET="${DISK%% *}"
     DISK="$(readlink -f ${DISK#* })"
