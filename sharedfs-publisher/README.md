@@ -14,6 +14,8 @@ for local use only.
 
 After that you can use built-in iSCSI driver in Kubernetes for connect your images into pods.
 
+Your images should have `.img` extension
+
 ## Configuration variables
 
 * **DIRECTORY** - Directory where publusher will check images (example: `/stor/sharedfs/images`)
