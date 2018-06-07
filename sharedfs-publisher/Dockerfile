@@ -1,3 +1,3 @@
-FROM alpine
+FROM kvaps/iscsi
 ADD sharedfs-publisher /
 ENTRYPOINT [ "/sharedfs-publisher" ]
