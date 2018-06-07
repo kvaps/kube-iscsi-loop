@@ -67,6 +67,7 @@ if ! command -v tgtadm >/dev/null; then
   die 1 "Command 'tgtadm' not found"
 fi
 
+echo "Starting loop (timeout: ${TIMEOUT})"
 while true; do
   tgtadm --lld iscsi --mode target --op show 1>/dev/null 2>/dev/null
   if [ $? != 0 ]; then

@@ -16,7 +16,7 @@ After that you can use built-in iSCSI driver in Kubernetes for connect your imag
 
 ## Configuration variables
 
-* **DIRECTORY** - Directory where publusher will check images (example: `/images`)
+* **DIRECTORY** - Directory where publusher will check images (example: `/stor/sharedfs/images`)
 
   *this directory should be also visible for tgtd daemon by same path*
   

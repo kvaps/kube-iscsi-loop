@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: sharedfs-publisher
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: sharedfs-publisher
+  template:
+    metadata:
+      labels:
+        app: sharedfs-publisher
+    spec:
+      hostNetwork: true
+      containers:
+      - name: sharedfs-publisher
+        imagePullPolicy: Always
+        image: "kvaps/sharedfs-publisher"
+        env:
+        - name: DIRECTORY
+          value: "/stor/sharedfs/images"
+        - name: IQN
+          value: "iqn.2018.09.org.loopback.sharedfs"
+        volumeMounts:
+        - name: run
+          mountPath: "/run"
+        - name: stor
+          mountPath: /stor
+
+      volumes:
+      - name: run
+        hostPath:
+          path: "/run"
+      - name: stor
+        hostPath:
+          path: "/stor"
