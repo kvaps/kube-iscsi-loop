@@ -22,7 +22,7 @@ spec:
         - name: DIRECTORY
           value: "/stor/sharedfs/images"
         - name: IQN
-          value: "iqn.2018.09.org.loopback.sharedfs"
+          value: "iqn.2018-09.org.loopback.sharedfs"
         volumeMounts:
         - name: run
           mountPath: "/run"

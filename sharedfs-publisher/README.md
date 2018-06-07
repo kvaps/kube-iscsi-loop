@@ -20,6 +20,6 @@ After that you can use built-in iSCSI driver in Kubernetes for connect your imag
 
   *this directory should be also visible for tgtd daemon by same path*
   
-* **IQN** - IQN name prefix for new targets (example: `iqn.2018.09.org.loopback.sharedfs`)
+* **IQN** - IQN name prefix for new targets (example: `iqn.2018-09.org.loopback.sharedfs`)
 * **TIMEOUT** - Timeout between checks (default: `10`)
 * **LUN** - LUN for the each new image (default: `1`)
