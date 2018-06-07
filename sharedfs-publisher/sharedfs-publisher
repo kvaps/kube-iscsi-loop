@@ -24,7 +24,7 @@ add_targets() {
     -name '*.img' \
     -exec readlink -f "{}" \; |
   while read DISK; do
-    DISK_NAME=$(basename $DISK)
+    DISK_NAME=$(basename "${DISK}" .img)
     tgtadm --lld iscsi --mode target --op show | grep -q " ${IQN}:${DISK_NAME}$"
     if [ $? != 0 ]; then
       TARGET=$((TARGET+1))
