@@ -225,6 +225,8 @@ kind: PersistentVolume
 metadata:
   name: ${volumename}
   namespace: ${namespace}
+  annotations:
+    pv.kubernetes.io/provisioned-by: "${PROVISIONER_NAME}"
 spec:
   storageClassName: ${storageclass}
   mountOptions: ${mountoptions}

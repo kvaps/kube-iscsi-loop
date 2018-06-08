@@ -1,0 +1,115 @@
+#!/bin/sh
+
+PROVISIONER_NAME=${PROVISIONER_NAME:-kvaps/sharedfs}
+
+warn () {
+  echo "$@" >&2
+}
+
+die () {
+  status="$1"
+  shift
+  warn "$@"
+  exit "$status"
+}
+
+echo "Starting loop"
+unset column
+kubectl get pv --all-namespaces -o json -w |
+  jq --raw-output --unbuffered '
+  .metadata.name,
+  .spec.claimRef.namespace,
+  .status.phase,
+  .spec.persistentVolumeReclaimPolicy,
+  .spec.storageClassName,
+  .metadata.annotations["pv.kubernetes.io/provisioned-by"]' |
+while read string; do
+  column=$((column+1))
+  case "${column}" in
+    1)
+      volumename="${string}"
+      continue
+      ;;
+    2)
+      namespace="${string}"
+      continue
+      ;;
+    3)
+      phase="${string}"
+      continue
+      ;;
+    4)
+      reclaimpolicy="${string}"
+      continue
+      ;;
+    5)
+      storageclass="${string}"
+      continue
+      ;;
+    6)
+      provisioner="${string}"
+      unset column
+      ;;
+  esac
+
+  if
+    [ "${phase}" != "Released" ] ||
+    [ "${reclaimpolicy}" != "Delete" ] ||
+    [ "${provisioner}" != "${PROVISIONER_NAME}" ] ||
+    [ "${storageclass}" = "null" ]
+  then
+    continue
+  fi
+
+  kubectl get storageclass "${storageclass}" -o json |
+    jq --raw-output --unbuffered '
+    .parameters.mountpoint,
+    .parameters.directory,
+    .reclaimPolicy' |
+  while read string; do
+    column=$((column+1))
+    case "${column}" in
+      1)
+        mountpoint="${string}"
+        continue
+        ;;
+      2)
+        directory="${string}"
+        continue
+        ;;
+      3)
+        reclaimpolicy="${string}"
+        unset column
+        ;;
+    esac
+
+    if [ "${reclaimpolicy}" = null ]; then
+      # storage class is not exist
+      continue
+    fi
+    if [ "${mountpoint}" = null ]; then
+      warn ".parameters.mountpoint can not be empty"
+      continue
+    fi
+    if [ "${directory}" = null ]; then
+      directory=""
+    fi
+
+    #if ! mountpoint -q "${mountpoint}"; then
+    #  die 1 "Mountpoint '${mountpoint}' is not mounted"
+    #fi
+
+    volumepath="${mountpoint}/${directory}/${volumename}.img"
+
+    if [ ! -f "${volumepath}" ]; then
+        continue
+    fi
+
+    echo "Claim '${namespace}/${claimname}': "
+    echo "Removing '${volumepath}' file"
+    rm -f "${volumepath}"
+    kubectl delete pv -n "${namespace}" "${volumename}"
+
+  done
+
+done
