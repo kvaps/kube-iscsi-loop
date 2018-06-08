@@ -95,9 +95,9 @@ while read string; do
       directory=""
     fi
 
-    #if ! mountpoint -q "${mountpoint}"; then
-    #  die 1 "Mountpoint '${mountpoint}' is not mounted"
-    #fi
+    if ! mountpoint -q "${mountpoint}"; then
+      die 1 "Mountpoint '${mountpoint}' is not mounted"
+    fi
 
     volumepath="${mountpoint}/${directory}/${volumename}.img"
 
