@@ -1,31 +1,38 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: sheepdog-publisher
+  name: iscsi-sharedfs-publisher
 spec:
   updateStrategy:
     type: RollingUpdate
   selector:
     matchLabels:
-      app: sheepdog-publisher
+      app: iscsi-sharedfs-publisher
   template:
     metadata:
       labels:
-        app: sheepdog-publisher
+        app: iscsi-sharedfs-publisher
     spec:
       hostNetwork: true
       containers:
       - name: publisher
         imagePullPolicy: Always
-        image: "kvaps/sheepdog-publisher"
+        image: "kvaps/iscsi-sharedfs-publisher"
         env:
+        - name: DIRECTORY
+          value: "/stor/sharedfs/images"
         - name: IQN
-          value: "iqn.2018-09.org.loopback.sheepdog"
+          value: "iqn.2018-09.org.loopback.sharedfs"
         volumeMounts:
         - name: run
           mountPath: "/run"
+        - name: stor
+          mountPath: /stor
 
       volumes:
       - name: run
         hostPath:
           path: "/run"
+      - name: stor
+        hostPath:
+          path: "/stor"

@@ -1,23 +1,23 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: sharedfs-provisioner
+  name: iscsi-sharedfs-provisioner
 spec:
   selector:
     matchLabels:
-      app: sharedfs-provisioner
+      app: iscsi-sharedfs-provisioner
   template:
     metadata:
       labels:
-        app: sharedfs-provisioner
+        app: iscsi-sharedfs-provisioner
     spec:
       hostNetwork: true
-      serviceAccount: sharedfs-provisioner
+      serviceAccount: iscsi-sharedfs-provisioner
       containers:
       - name: provisioner
-        command: [ "/sharedfs-provisioner" ]
+        command: [ "/iscsi-sharedfs-provisioner" ]
         imagePullPolicy: Always
-        image: "kvaps/sharedfs-provisioner"
+        image: "kvaps/iscsi-sharedfs-provisioner"
         env:
         - name: PROVISIONER_NAME
           value: "kvaps/sharedfs"
@@ -25,9 +25,9 @@ spec:
         - name: stor
           mountPath: /stor
       - name: deleter
-        command: [ "/sharedfs-deleter" ]
+        command: [ "/iscsi-sharedfs-deleter" ]
         imagePullPolicy: Always
-        image: "kvaps/sharedfs-provisioner"
+        image: "kvaps/iscsi-sharedfs-provisioner"
         env:
         - name: PROVISIONER_NAME
           value: "kvaps/sharedfs"

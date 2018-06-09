@@ -1,4 +1,4 @@
-# Sharedfs iSCSI Publisher
+# iSCSI SharedFS Publisher
 
 | Image                    | Build Status                 |
 |--------------------------|------------------------------|
