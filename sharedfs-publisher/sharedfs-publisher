@@ -16,7 +16,7 @@ die () {
 
 add_targets() {
   TARGET=$(tgtadm --lld iscsi --mode target --op show | \
-    awk -F':? ' '$1 == "Target" {print $2}' | sort | tail -n1)
+    awk -F':? ' '$1 == "Target" {print $2}' | sort -h | tail -n1)
   
   find "${DIRECTORY}" \
     -maxdepth 1 \
