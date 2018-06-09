@@ -1,0 +1,40 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: sharedfs-provisioner
+spec:
+  selector:
+    matchLabels:
+      app: sharedfs-provisioner
+  template:
+    metadata:
+      labels:
+        app: sharedfs-provisioner
+    spec:
+      hostNetwork: true
+      containers:
+      - name: sharedfs-provisioner
+        command: [ "/sharedfs-provisioner" ]
+        imagePullPolicy: Always
+        image: "kvaps/sharedfs-provisioner"
+        env:
+        - name: PROVISIONER_NAME
+          value: "kvaps/sharedfs"
+        volumeMounts:
+        - name: stor
+          mountPath: /stor
+      - name: sharedfs-deleter
+        command: [ "/sharedfs-deleter" ]
+        imagePullPolicy: Always
+        image: "kvaps/sharedfs-provisioner"
+        env:
+        - name: PROVISIONER_NAME
+          value: "kvaps/sharedfs"
+        volumeMounts:
+        - name: stor
+          mountPath: /stor
+
+      volumes:
+      - name: stor
+        hostPath:
+          path: "/stor"
