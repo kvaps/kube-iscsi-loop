@@ -1,0 +1,76 @@
+#!/bin/sh
+
+PROVISIONER_NAME=${PROVISIONER_NAME:-kvaps/sheepdog}
+
+warn () {
+  echo "$@" >&2
+}
+
+die () {
+  status="$1"
+  shift
+  warn "$@"
+  exit "$status"
+}
+
+echo "Starting loop"
+unset column
+kubectl get pv --all-namespaces -o json -w |
+  jq --raw-output --unbuffered '
+  .metadata.name,
+  .spec.claimRef.namespace,
+  .status.phase,
+  .spec.persistentVolumeReclaimPolicy,
+  .spec.storageClassName,
+  .metadata.annotations["pv.kubernetes.io/provisioned-by"]' |
+while read string; do
+  column=$((column+1))
+  case "${column}" in
+    1)
+      volumename="${string}"
+      continue
+      ;;
+    2)
+      namespace="${string}"
+      continue
+      ;;
+    3)
+      phase="${string}"
+      continue
+      ;;
+    4)
+      reclaimpolicy="${string}"
+      continue
+      ;;
+    5)
+      storageclass="${string}"
+      continue
+      ;;
+    6)
+      provisioner="${string}"
+      unset column
+      ;;
+  esac
+
+  if
+    [ "${phase}" != "Released" ] ||
+    [ "${reclaimpolicy}" != "Delete" ] ||
+    [ "${provisioner}" != "${PROVISIONER_NAME}" ] ||
+    [ "${storageclass}" = "null" ]
+  then
+    continue
+  fi
+
+  if ! command -v dog >/dev/null; then
+    die 1 "Command 'dog' not found"
+  fi
+
+  echo "Claim '${namespace}/${claimname}': "
+  echo "Removing vdi '${volumename}'"
+
+  dog vdi delete "${volumename}"
+  if [ $? -eq "0" ]; then
+    kubectl delete pv -n "${namespace}" "${volumename}"
+  fi
+
+done
