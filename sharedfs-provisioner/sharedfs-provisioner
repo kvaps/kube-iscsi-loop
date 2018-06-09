@@ -81,21 +81,17 @@ while read string; do
   fi
 
 
-  volumename_and_uid="$(kubectl get pv --all-namespaces -o json |
+  volumename="$(kubectl get pv --all-namespaces -o json |
     jq -r ".items[] | select(
     .spec.claimRef.namespace == \"${namespace}\" and
     .spec.claimRef.name == \"${claimname}\" and
     .spec.storageClassName == \"${storageclass}\" and
     .spec.persistentVolumeReclaimPolicy == \"Retain\"
-    ) | .metadata.name + \" \" + .spec.claimRef.uid" |
-    head -n 1)"
+    ) | .metadata.name" | head -n 1)"
 
-  if [ -n "$volumename_and_uid" ]; then
-    if [ "${volumename_and_uid##* }" != "${uid}" ]; then
-
-      echo -n "Claim '${namespace}/${claimname}': "
-      kubectl patch pv "${volumename_and_uid% *}" -p "{\"spec\":{\"claimRef\":{\"uid\":\"${uid}\"}}}"
-    fi
+  if [ -n "$volumename" ]; then
+    echo -n "Claim '${namespace}/${claimname}': "
+    kubectl patch pv "${volumename}" -p "{\"spec\":{\"claimRef\":{\"uid\":\"${uid}\"}}}"
     continue
   fi
 
@@ -193,10 +189,6 @@ while read string; do
 
     volumename="pvc-${uid}"
     volumepath="${mountpoint}/${directory}/${volumename}.img"
-
-    if [ -f "${volumepath}" ]; then
-        continue
-    fi
 
     echo "Claim '${namespace}/${claimname}': "
 

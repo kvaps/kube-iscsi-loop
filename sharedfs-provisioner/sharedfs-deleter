@@ -101,10 +101,6 @@ while read string; do
 
     volumepath="${mountpoint}/${directory}/${volumename}.img"
 
-    if [ ! -f "${volumepath}" ]; then
-        continue
-    fi
-
     echo "Claim '${namespace}/${claimname}': "
     echo "Removing '${volumepath}' file"
     rm -f "${volumepath}"
