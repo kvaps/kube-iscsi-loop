@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: sheepdog-publisher
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: sheepdog-publisher
+  template:
+    metadata:
+      labels:
+        app: sheepdog-publisher
+    spec:
+      hostNetwork: true
+      containers:
+      - name: publisher
+        imagePullPolicy: Always
+        image: "kvaps/sheepdog-publisher"
+        env:
+        - name: IQN
+          value: "iqn.2018-09.org.loopback.sheepdog"
+        volumeMounts:
+        - name: run
+          mountPath: "/run"
+
+      volumes:
+      - name: run
+        hostPath:
+          path: "/run"
