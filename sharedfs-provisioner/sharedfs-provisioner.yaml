@@ -12,8 +12,9 @@ spec:
         app: sharedfs-provisioner
     spec:
       hostNetwork: true
+      serviceAccount: sharedfs-provisioner
       containers:
-      - name: sharedfs-provisioner
+      - name: provisioner
         command: [ "/sharedfs-provisioner" ]
         imagePullPolicy: Always
         image: "kvaps/sharedfs-provisioner"
@@ -23,7 +24,7 @@ spec:
         volumeMounts:
         - name: stor
           mountPath: /stor
-      - name: sharedfs-deleter
+      - name: deleter
         command: [ "/sharedfs-deleter" ]
         imagePullPolicy: Always
         image: "kvaps/sharedfs-provisioner"
