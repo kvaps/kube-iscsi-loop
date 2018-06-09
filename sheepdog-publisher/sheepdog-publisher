@@ -1,0 +1,83 @@
+#!/bin/sh
+
+LUN="${LUN-1}"
+TIMEOUT="${TIMEOUT:-10}"
+SHEEPDOG_ADDRESS="${SHEEPDOG_ADDRESS:-127.0.0.1}"
+SHEEPDOG_PORT="${SHEEPDOG_PORT:-7000}"
+
+warn () {
+  echo "$0: $@" >&2
+}
+
+die () {
+  status="$1"
+  shift
+  warn "$@"
+  exit "$status"
+}
+
+add_targets() {
+  TARGET=$(tgtadm --lld iscsi --mode target --op show | \
+    awk -F':? ' '$1 == "Target" {print $2}' | sort -h | tail -n1)
+  
+  echo "$VDI_LIST" |
+  while read VDI; do
+    tgtadm --lld iscsi --mode target --op show | grep -q " ${IQN}:${VDI}$"
+    if [ $? != 0 ]; then
+      TARGET=$((TARGET+1))
+      (
+        set -x
+        tgtadm --lld iscsi --op new --mode target --tid "${TARGET}" --targetname "${IQN}:${VDI}"
+        tgtadm --lld iscsi --op new --mode lu --tid "${TARGET}" --lun "${LUN}" --bstype sheepdog -b "tcp:${SHEEPDOG_ADDRESS}:${SHEEPDOG_PORT}:${VDI}"
+        tgtadm --lld iscsi --op bind --mode target --tid "${TARGET}" --initiator-address "127.0.0.1"
+      )
+    fi
+  done
+}
+
+del_targets() {
+  tgtadm --lld iscsi --mode target --op show |
+    awk -F':? ' '$1 == "Target" {print $2 " " $3}' |
+    sed -n "s| ${IQN}:\(.*\)| \1|p" |
+  while read VDI; do
+    TARGET="${VDI%% *}"
+    VDI="${VDI#* }"
+    if ! echo "$VDI_LIST" | grep -q "^${VDI}$"; then
+      (
+        set -x
+        tgtadm --lld iscsi --op delete --mode target --tid "${TARGET}"
+      )
+    fi
+  done
+}
+
+case "" in
+  "${IQN}" ) die 1 "Variable IQN should be set" ;;
+esac
+
+if ! command -v tgtadm >/dev/null; then
+  die 1 "Command 'tgtadm' not found"
+fi
+
+if ! command -v dog >/dev/null; then
+  die 1 "Command 'dog' not found"
+fi
+
+
+echo "Starting loop (timeout: ${TIMEOUT})"
+while true; do
+  tgtadm --lld iscsi --mode target --op show 1>/dev/null 2>/dev/null
+  if [ $? != 0 ]; then
+    die 1 "Can not connect to tgtd daemon"
+  fi
+
+  VDI_LIST="$(dog vdi tree --address="${SHEEPDOG_ADDRESS}" --port="${SHEEPDOG_PORT}")"
+  if [ $? != 0 ]; then
+    die 1 "Can not connect to sheep daemon"
+  fi
+  VDI_LIST="$(echo "$VDI_LIST" | sed -n 's/^\(.*\)---\(\[\|(\).*/\1/p')"
+
+  del_targets
+  add_targets
+  sleep "${TIMEOUT}"
+done
