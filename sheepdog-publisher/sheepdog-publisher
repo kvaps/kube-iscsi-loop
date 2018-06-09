@@ -17,12 +17,11 @@ die () {
 }
 
 add_targets() {
-  TARGET=$(tgtadm --lld iscsi --mode target --op show | \
-    awk -F':? ' '$1 == "Target" {print $2}' | sort -h | tail -n1)
+  TARGET=$(echo "$TGT_LIST" | cut -d' ' -f1 | sort -h | tail -n1)
   
   echo "$VDI_LIST" |
   while read VDI; do
-    tgtadm --lld iscsi --mode target --op show | grep -q " ${IQN}:${VDI}$"
+    echo "${TGT_LIST}" | grep -q " ${IQN}:${VDI}$"
     if [ $? != 0 ]; then
       TARGET=$((TARGET+1))
       (
@@ -36,9 +35,7 @@ add_targets() {
 }
 
 del_targets() {
-  tgtadm --lld iscsi --mode target --op show |
-    awk -F':? ' '$1 == "Target" {print $2 " " $3}' |
-    sed -n "s| ${IQN}:\(.*\)| \1|p" |
+  echo "${TGT_LIST}" | sed -n "s| ${IQN}:\(.*\)| \1|p" |
   while read VDI; do
     TARGET="${VDI%% *}"
     VDI="${VDI#* }"
@@ -66,10 +63,11 @@ fi
 
 echo "Starting loop (timeout: ${TIMEOUT})"
 while true; do
-  tgtadm --lld iscsi --mode target --op show 1>/dev/null 2>/dev/null
+  TGT_LIST="$(tgtadm --lld iscsi --mode target --op show)"
   if [ $? != 0 ]; then
     die 1 "Can not connect to tgtd daemon"
   fi
+  TGT_LIST="$(echo "$TGT_LIST" | awk -F':? ' '$1 == "Target" {print $2 " " $3}')"
 
   VDI_LIST="$(dog vdi tree --address="${SHEEPDOG_ADDRESS}" --port="${SHEEPDOG_PORT}")"
   if [ $? != 0 ]; then
