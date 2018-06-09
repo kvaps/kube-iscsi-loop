@@ -15,8 +15,7 @@ die () {
 }
 
 add_targets() {
-  TARGET=$(tgtadm --lld iscsi --mode target --op show | \
-    awk -F':? ' '$1 == "Target" {print $2}' | sort -h | tail -n1)
+  TARGET=$(echo "$TGT_LIST" | cut -d' ' -f1 | sort -h | tail -n1)
   
   find "${DIRECTORY}" \
     -maxdepth 1 \
@@ -25,7 +24,7 @@ add_targets() {
     -exec readlink -f "{}" \; |
   while read DISK; do
     DISK_NAME=$(basename "${DISK}" .img)
-    tgtadm --lld iscsi --mode target --op show | grep -q " ${IQN}:${DISK_NAME}$"
+    echo "${TGT_LIST}" | grep -q " ${IQN}:${DISK_NAME}$"
     if [ $? != 0 ]; then
       TARGET=$((TARGET+1))
       (
@@ -39,9 +38,7 @@ add_targets() {
 }
 
 del_targets() {
-  tgtadm --lld iscsi --mode target --op show |
-    awk -F':? ' '$1 == "Target" {print $2 " " $3}' |
-    sed -n "s| ${IQN}:\(.*\)| ${DIRECTORY}/\1.img|p" |
+  echo "${TGT_LIST}" | sed -n "s| ${IQN}:\(.*\)| ${DIRECTORY}/\1.img|p" |
   while read DISK; do
     TARGET="${DISK%% *}"
     DISK="$(readlink -f ${DISK#* })"
@@ -69,12 +66,17 @@ fi
 
 echo "Starting loop (timeout: ${TIMEOUT})"
 while true; do
-  tgtadm --lld iscsi --mode target --op show 1>/dev/null 2>/dev/null
+  TGT_LIST="$(tgtadm --lld iscsi --mode target --op show)"
+  if [ $? != 0 ]; then
+    die 1 "Can not connect to tgtd daemon"
+  fi
+  TGT_LIST="$(echo "$TGT_LIST" | awk -F':? ' '$1 == "Target" {print $2 " " $3}')"
+
   if [ $? != 0 ]; then
     die 1 "Can not connect to tgtd daemon"
   fi
 
-  add_targets
   del_targets
+  add_targets
   sleep "${TIMEOUT}"
 done
