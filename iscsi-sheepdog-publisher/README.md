@@ -25,13 +25,13 @@ Sheepdog is quite experimental storage, use it at your own risk.
 
 * Use example yaml for deploy your own installation:
 
-```bash
-curl -o iscsi-sheepdog-publisher.yaml -L https://raw.githubusercontent.com/kvaps/kube-iscsi-loop/master/iscsi-sheepdog-publisher/iscsi-sheepdog-publisher.yaml
-vim iscsi-sheepdog-publisher.yaml
-kubectl apply -f iscsi-sheepdog-publisher.yaml
-```
-
-*In this example we are presume that your filesystem is mounted on /stor/sheepdog on every node*
+  ```bash
+  curl -o iscsi-sheepdog-publisher.yaml -L https://raw.githubusercontent.com/kvaps/kube-iscsi-loop/master/iscsi-sheepdog-publisher/iscsi-sheepdog-publisher.yaml
+  vim iscsi-sheepdog-publisher.yaml
+  kubectl apply -f iscsi-sheepdog-publisher.yaml
+  ```
+  
+  *In this example we are presume that your filesystem is mounted on /stor/sheepdog on every node*
 
 ## Configuration variables
 

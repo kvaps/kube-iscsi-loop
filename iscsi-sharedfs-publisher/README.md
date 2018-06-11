@@ -22,13 +22,13 @@ Your images should have `.img` extension
 
 * Use example yaml for deploy your own installation:
 
-```bash
-curl -o iscsi-sharedfs-publisher.yaml -L https://raw.githubusercontent.com/kvaps/kube-iscsi-loop/master/iscsi-sharedfs-publisher/iscsi-sharedfs-publisher.yaml
-vim iscsi-sharedfs-publisher.yaml
-kubectl apply -f iscsi-sharedfs-publisher.yaml
-```
+  ```bash
+  curl -o iscsi-sharedfs-publisher.yaml -L https://raw.githubusercontent.com/kvaps/kube-iscsi-loop/master/iscsi-sharedfs-publisher/iscsi-sharedfs-publisher.yaml
+  vim iscsi-sharedfs-publisher.yaml
+  kubectl apply -f iscsi-sharedfs-publisher.yaml
+  ```
 
-*In this example we are presume that your filesystem is mounted on /stor/sharedfs on every node*
+  *In this example we are presume that your filesystem is mounted on /stor/sharedfs on every node*
 
 **WARNING**
 
