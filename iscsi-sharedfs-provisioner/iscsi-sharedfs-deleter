@@ -18,6 +18,7 @@ unset column
 kubectl get pv --all-namespaces -o json -w |
   jq --raw-output --unbuffered '
   .metadata.name,
+  .metadata.deletionTimestamp,
   .spec.claimRef.namespace,
   .status.phase,
   .spec.persistentVolumeReclaimPolicy,
@@ -31,22 +32,26 @@ while read string; do
       continue
       ;;
     2)
-      namespace="${string}"
+      deletiontimestamp="${string}"
       continue
       ;;
     3)
-      phase="${string}"
+      namespace="${string}"
       continue
       ;;
     4)
-      reclaimpolicy="${string}"
+      phase="${string}"
       continue
       ;;
     5)
-      storageclass="${string}"
+      reclaimpolicy="${string}"
       continue
       ;;
     6)
+      storageclass="${string}"
+      continue
+      ;;
+    7)
       provisioner="${string}"
       unset column
       ;;
@@ -54,7 +59,9 @@ while read string; do
 
   if
     [ "${phase}" != "Released" ] ||
-    [ "${reclaimpolicy}" != "Delete" ] ||
+    ! ( [ "${reclaimpolicy}" = "Delete" ] ||
+        ( [ "${reclaimpolicy}" = "Retain" ] && [ "${deletiontimestamp}" != "null" ] )
+      ) ||
     [ "${provisioner}" != "${PROVISIONER_NAME}" ] ||
     [ "${storageclass}" = "null" ]
   then
