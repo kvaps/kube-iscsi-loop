@@ -219,7 +219,7 @@ while read string; do
     echo "Claim '${namespace}/${claimname}': "
 
     echo "Creating vdi '${volumename}' (${size%i*})"
-    dog vdi create $dog_options "${volumename}" "${size}"
+    dog vdi create $dog_options "${volumename}" "${size%i*}"
     if [ $? -ne 0 ]; then
       warn "Can not create vdi '${volumename}'"
       continue
