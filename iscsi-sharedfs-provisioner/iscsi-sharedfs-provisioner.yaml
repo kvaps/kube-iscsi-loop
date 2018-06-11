@@ -24,6 +24,8 @@ spec:
         volumeMounts:
         - name: stor
           mountPath: /stor
+          mountPropagation: HostToContainer
+
       - name: deleter
         command: [ "/iscsi-sharedfs-deleter" ]
         imagePullPolicy: Always
@@ -34,6 +36,7 @@ spec:
         volumeMounts:
         - name: stor
           mountPath: /stor
+          mountPropagation: HostToContainer
 
       volumes:
       - name: stor

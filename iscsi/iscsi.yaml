@@ -39,6 +39,9 @@ spec:
         volumeMounts:
         - name: run
           mountPath: "/run"
+        #- name: stor
+        #  mountPath: /stor
+        #  mountPropagation: HostToContainer
       - name: iscsid
         imagePullPolicy: Always
         image: "kvaps/iscsi"
@@ -66,3 +69,6 @@ spec:
       - name: bin
         hostPath:
           path: "/usr/local/bin"
+      #- name: stor
+      #  hostPath:
+      #    path: "/stor"
