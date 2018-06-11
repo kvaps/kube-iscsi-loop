@@ -101,7 +101,7 @@ while read string; do
 
     volumepath="${mountpoint}/${directory}/${volumename}.img"
 
-    echo "Claim '${namespace}/${claimname}': "
+    echo "Volume '${namespace}/${volumename}': "
     echo "Removing '${volumepath}' file"
     rm -f "${volumepath}"
     kubectl delete pv -n "${namespace}" "${volumename}"
