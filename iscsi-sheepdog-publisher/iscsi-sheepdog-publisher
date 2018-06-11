@@ -2,8 +2,8 @@
 
 LUN="${LUN-1}"
 TIMEOUT="${TIMEOUT:-10}"
-SHEEPDOG_ADDRESS="${SHEEPDOG_ADDRESS:-127.0.0.1}"
-SHEEPDOG_PORT="${SHEEPDOG_PORT:-7000}"
+ADDRESS="${ADDRESS:-127.0.0.1}"
+PORT="${PORT:-7000}"
 
 warn () {
   echo "$0: $@" >&2
@@ -27,7 +27,7 @@ add_targets() {
       (
         set -x
         tgtadm --lld iscsi --op new --mode target --tid "${TARGET}" --targetname "${IQN}:${VDI}"
-        tgtadm --lld iscsi --op new --mode lu --tid "${TARGET}" --lun "${LUN}" --bstype sheepdog -b "tcp:${SHEEPDOG_ADDRESS}:${SHEEPDOG_PORT}:${VDI}"
+        tgtadm --lld iscsi --op new --mode lu --tid "${TARGET}" --lun "${LUN}" --bstype sheepdog -b "tcp:${ADDRESS}:${PORT}:${VDI}"
         tgtadm --lld iscsi --op bind --mode target --tid "${TARGET}" --initiator-address "127.0.0.1"
       )
     fi
@@ -69,7 +69,7 @@ while true; do
   fi
   TGT_LIST="$(echo "$TGT_LIST" | awk -F':? ' '$1 == "Target" {print $2 " " $3}')"
 
-  VDI_LIST="$(dog vdi tree --address="${SHEEPDOG_ADDRESS}" --port="${SHEEPDOG_PORT}")"
+  VDI_LIST="$(dog vdi tree --address="${ADDRESS}" --port="${PORT}")"
   if [ $? != 0 ]; then
     die 1 "Can not connect to sheep daemon"
   fi
