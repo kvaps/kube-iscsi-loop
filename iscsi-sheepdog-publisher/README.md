@@ -1,11 +1,11 @@
 # iSCSI Sheepdog Publisher
 
-| Image                    | Build Status                 |
-|--------------------------|------------------------------|
-| **[sheepdog-publisher]** | ![sheepdog-publisher-status] |
+| Image                          | Build Status                       |
+|--------------------------------|------------------------------------|
+| **[iscsi-sheepdog-publisher]** | ![iscsi-sheepdog-publisher-status] |
 
-[sheepdog-publisher]: sheepdog-publisher
-[sheepdog-publisher-status]: https://img.shields.io/docker/build/kvaps/sheepdog-publisher.svg
+[iscsi-sheepdog-publisher]: iscsi-sheepdog-publisher
+[iscsi-sheepdog-publisher-status]: https://img.shields.io/docker/build/kvaps/iscsi-sheepdog-publisher.svg
 
 Runs as daemonset.
 

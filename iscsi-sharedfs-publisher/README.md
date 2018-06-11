@@ -1,11 +1,11 @@
 # iSCSI SharedFS Publisher
 
-| Image                    | Build Status                 |
-|--------------------------|------------------------------|
-| **[sharedfs-publisher]** | ![sharedfs-publisher-status] |
+| Image                          | Build Status                       |
+|--------------------------------|------------------------------------|
+| **[iscsi-sharedfs-publisher]** | ![iscsi-sharedfs-publisher-status] |
 
-[sharedfs-publisher]: sharedfs-publisher
-[sharedfs-publisher-status]: https://img.shields.io/docker/build/kvaps/sharedfs-publisher.svg
+[iscsi-sharedfs-publisher]: iscsi-sharedfs-publisher
+[iscsi-sharedfs-publisher-status]: https://img.shields.io/docker/build/kvaps/iscsi-sharedfs-publisher.svg
 
 Runs as daemonset.
 
