@@ -1,0 +1,261 @@
+#!/bin/sh
+
+PROVISIONER_NAME=${PROVISIONER_NAME:-kvaps/sheepdog}
+
+warn () {
+  echo "$@" >&2
+}
+
+die () {
+  status="$1"
+  shift
+  warn "$@"
+  exit "$status"
+}
+
+if ! command -v dog >/dev/null; then
+  die 1 "Command 'dog' not found"
+fi
+
+echo "Starting loop"
+unset column
+kubectl get pvc --all-namespaces -o json -w |
+  jq --raw-output --unbuffered '
+  .metadata.name,
+  .metadata.namespace,
+  .status.phase,
+  .spec.resources.requests.storage,
+  .spec.accessModes,
+  .spec.storageClassName,
+  .metadata.annotations["volume.beta.kubernetes.io/storage-provisioner"],
+  .metadata.uid' |
+while read string; do
+  column=$((column+1))
+  case "${column}" in
+    1)
+      claimname="${string}"
+      continue
+      ;;
+    2)
+      namespace="${string}"
+      continue
+      ;;
+    3)
+      phase="${string}"
+      continue
+      ;;
+    4)
+      size="${string}"
+      continue
+      ;;
+    5)
+      if [ "${string}" = "[" ]; then
+        accessmodes="["
+        column=$((column-1))
+        continue
+      elif [ "${string}" = "]" ]; then
+        accessmodes="${accessmodes} ]"
+        continue
+      else
+        accessmodes="${accessmodes} ${string}"
+        column=$((column-1))
+        continue
+      fi
+      ;;
+    6)
+      storageclass="${string}"
+      continue
+      ;;
+    7)
+      provisioner="${string}"
+      continue
+      ;;
+    8)
+      uid="${string}"
+      unset column
+      ;;
+  esac
+
+  if
+    [ "${phase}" != "Pending" ] ||
+    [ "${provisioner}" != "${PROVISIONER_NAME}" ] ||
+    [ "${storageclass}" = "null" ]
+  then
+      continue
+  fi
+
+
+  volumename="$(kubectl get pv --all-namespaces -o json |
+    jq -r ".items[] | select(
+    .spec.claimRef.namespace == \"${namespace}\" and
+    .spec.claimRef.name == \"${claimname}\" and
+    .spec.storageClassName == \"${storageclass}\" and
+    .spec.persistentVolumeReclaimPolicy == \"Retain\"
+    ) | .metadata.name" | head -n 1)"
+
+  if [ -n "$volumename" ]; then
+    echo -n "Claim '${namespace}/${claimname}': "
+    kubectl patch pv "${volumename}" -p "{\"spec\":{\"claimRef\":{\"uid\":\"${uid}\"}}}"
+    continue
+  fi
+
+  if echo "${accessmodes}" | grep -q "ReadWriteMany"; then
+    warn "Claim '${namespace}/${claimname}': ReadWriteMany not supported"
+    continue
+  fi
+
+  kubectl get storageclass "${storageclass}" -o json |
+    jq --raw-output --unbuffered '
+    .parameters.fsType,
+    .parameters.iqn,
+    .parameters.lun,
+    .parameters.address,
+    .parameters.port,
+    .parameters.prealloc,
+    .parameters.hyper,
+    .parameters.copies,
+    .parameters.block_size_shift,
+    .mountOptions,
+    .reclaimPolicy' |
+  while read string; do
+    column=$((column+1))
+    case "${column}" in
+      1)
+        fstype="${string}"
+        continue
+        ;;
+      2)
+        iqn="${string}"
+        continue
+        ;;
+      3)
+        lun="${string}"
+        continue
+        ;;
+      4)
+        address="${string}"
+        continue
+        ;;
+      5)
+        port="${string}"
+        continue
+        ;;
+      6)
+        prealloc="${string}"
+        continue
+        ;;
+      7)
+        hyper="${string}"
+        continue
+        ;;
+      8)
+        copies="${string}"
+        continue
+        ;;
+      9)
+        block_size_shift="${string}"
+        continue
+        ;;
+      10)
+        if [ "${string}" = "[" ]; then
+          mountoptions="["
+          column=$((column-1))
+          continue
+        elif [ "${string}" = "]" ]; then
+          mountoptions="${mountoptions} ]"
+          continue
+        else
+          mountoptions="${mountoptions} ${string}"
+          column=$((column-1))
+          continue
+        fi
+        ;;
+      11)
+        reclaimpolicy="${string}"
+        unset column
+        ;;
+    esac
+
+    if [ "${reclaimpolicy}" = null ]; then
+      # storage class is not exist
+      continue
+    fi
+    if [ "${iqn}" = null ]; then
+      warn ".parameters.iqn can not be empty"
+      continue
+    fi
+    if [ "${mountpoint}" = null ]; then
+      warn ".parameters.mountpoint can not be empty"
+      continue
+    fi
+    if [ "${lun}" = null ]; then
+      lun="1"
+    fi
+    if [ "${mountoptions}" = null ]; then
+      mountoptions="[]"
+    fi
+
+    # load sheepdog options
+    unset dog_options
+    for key in prealloc hyper copies address port block_size_shift; do
+      val="$(eval "echo \"\${$key}\"")"
+      case "${val}" in
+        false|no|null)
+          continue
+          ;;
+        true|yes)
+          export dog_options="${dog_options} --${key}"
+          continue
+          ;;
+        *)
+          export dog_options="${dog_options} --${key}=${val}"
+          continue
+          ;;
+      esac
+    done
+
+    volumename="pvc-${uid}"
+
+    echo "Claim '${namespace}/${claimname}': "
+
+    echo "Creating vdi '${volumename}' (${size%i*})"
+    dog vdi create $dog_options "${volumename}" "${size}"
+    if [ $? -ne 0 ]; then
+      warn "Can not create vdi '${volumename}'"
+      continue
+    fi
+
+    cat | kubectl create -f - <<EOT
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ${volumename}
+  namespace: ${namespace}
+  annotations:
+    pv.kubernetes.io/provisioned-by: "${PROVISIONER_NAME}"
+spec:
+  storageClassName: ${storageclass}
+  mountOptions: ${mountoptions}
+  capacity:
+    storage: ${size}
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    name: ${claimname}
+    namespace: ${namespace}
+    uid: ${uid}
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Block
+  persistentVolumeReclaimPolicy: ${reclaimpolicy}
+  iscsi:
+    targetPortal: 127.0.0.1:3260
+    iqn: "${iqn}:${volumename}"
+    lun: ${lun}
+    fsType: ${fstype}
+EOT
+
+  done
+
+done
+

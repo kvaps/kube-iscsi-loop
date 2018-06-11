@@ -13,6 +13,10 @@ die () {
   exit "$status"
 }
 
+if ! command -v dog >/dev/null; then
+  die 1 "Command 'dog' not found"
+fi
+
 echo "Starting loop"
 unset column
 kubectl get pv --all-namespaces -o json -w |
@@ -61,16 +65,56 @@ while read string; do
     continue
   fi
 
-  if ! command -v dog >/dev/null; then
-    die 1 "Command 'dog' not found"
-  fi
+  echo "Volume '${namespace}/${volumename}': "
 
-  echo "Claim '${namespace}/${claimname}': "
-  echo "Removing vdi '${volumename}'"
+  kubectl get storageclass "${storageclass}" -o json |
+    jq --raw-output --unbuffered '
+    .parameters.address,
+    .parameters.port,
+    .reclaimPolicy' |
+  while read string; do
+    column=$((column+1))
+    case "${column}" in
+      1)
+        address="${string}"
+        continue
+        ;;
+      2)
+        port="${string}"
+        continue
+        ;;
+      3)
+        reclaimpolicy="${string}"
+        unset column
+        ;;
+    esac
 
-  dog vdi delete "${volumename}"
-  if [ $? -eq "0" ]; then
-    kubectl delete pv -n "${namespace}" "${volumename}"
-  fi
+    if [ "${reclaimpolicy}" = null ]; then
+      # storage class is not exist
+      continue
+    fi
+
+    # load sheepdog options
+    unset dog_options
+    for key in address port; do
+      val="$(eval "echo \"\${$key}\"")"
+      case "${val}" in
+        null)
+          continue
+          ;;
+        *)
+          export dog_options="${dog_options} --${key}=${val}"
+          continue
+          ;;
+      esac
+    done
+
+    echo "Removing vdi '${volumename}'"
+
+    dog vdi delete ${dog_options} "${volumename}"
+    if [ $? -eq "0" ]; then
+      kubectl delete pv -n "${namespace}" "${volumename}"
+    fi
+  done
 
 done
