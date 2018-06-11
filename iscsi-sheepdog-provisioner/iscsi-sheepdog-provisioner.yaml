@@ -1,0 +1,31 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: iscsi-sheepdog-provisioner
+spec:
+  selector:
+    matchLabels:
+      app: iscsi-sheepdog-provisioner
+  template:
+    metadata:
+      labels:
+        app: iscsi-sheepdog-provisioner
+    spec:
+      hostNetwork: true
+      serviceAccount: iscsi-sheepdog-provisioner
+      containers:
+      - name: provisioner
+        command: [ "/iscsi-sheepdog-provisioner" ]
+        imagePullPolicy: Always
+        image: "kvaps/iscsi-sheepdog-provisioner"
+        env:
+        - name: PROVISIONER_NAME
+          value: "kvaps/sheepdog"
+
+      - name: deleter
+        command: [ "/iscsi-sheepdog-deleter" ]
+        imagePullPolicy: Always
+        image: "kvaps/iscsi-sheepdog-provisioner"
+        env:
+        - name: PROVISIONER_NAME
+          value: "kvaps/sheepdog"

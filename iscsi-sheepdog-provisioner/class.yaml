@@ -1,0 +1,15 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: sheepdog
+provisioner: kvaps/sheepdog
+parameters:
+  fsType: ext4
+  iqn: "iqn.2018-09.org.loopback.sheepdog"
+  lun: "1"
+  prealloc: "false"
+  copies: "2"
+mountOptions:
+  - noatime
+  - nodiratime
+reclaimPolicy: Retain
