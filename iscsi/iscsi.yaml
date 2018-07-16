@@ -33,7 +33,7 @@ spec:
       - name: tgtd
         imagePullPolicy: Always
         image: "kvaps/iscsi"
-        command: [ "tgtd", "-f" ]
+        command: [ "tgtd-run.sh" ]
         securityContext:
           privileged: true
         volumeMounts:
