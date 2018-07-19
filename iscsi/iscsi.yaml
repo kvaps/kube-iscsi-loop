@@ -45,7 +45,7 @@ spec:
       - name: iscsid
         imagePullPolicy: Always
         image: "kvaps/iscsi"
-        command: [ "iscsid", "-f" ]
+        command: [ "iscsid-run.sh" ]
         securityContext:
           privileged: true
         volumeMounts:
@@ -55,6 +55,8 @@ spec:
           mountPath: "/dev"
         - name: run
           mountPath: "/run"
+        - name: etc-iscsi
+          mountPath: "/etc/iscsi"
 
       volumes:
       - name: modules
@@ -69,6 +71,9 @@ spec:
       - name: bin
         hostPath:
           path: "/usr/local/bin"
+      - name: etc-iscsi
+        hostPath:
+          path: "/etc/iscsi"
       #- name: stor
       #  hostPath:
       #    path: "/stor"
