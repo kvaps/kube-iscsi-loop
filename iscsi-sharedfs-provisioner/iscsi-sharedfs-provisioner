@@ -193,7 +193,7 @@ while read string; do
     echo "Claim '${namespace}/${claimname}': "
 
     echo "Creating '${volumepath}' (${size%i*}) file"
-    truncate -s "${size%i*}" "${volumepath}"
+    fallocate -l "${size%i*}" "${volumepath}"
     if [ $? -ne 0 ]; then
       warn "Can not create file '${volumepath}'"
       continue
